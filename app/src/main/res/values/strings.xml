@@ -1,3 +1,21 @@
 <resources>
-    <string name="app_name">Rick_and_morty</string>
+    <string name="app_name">Rick and Morty</string>
+
+    <!-- Splash -->
+    <string name="splash_title">Rick and Morty</string>
+
+    <!-- List screen -->
+    <string name="loading_characters">Loading characters…</string>
+    <string name="failed_to_load_characters">Failed to load characters</string>
+    <string name="retry">Retry</string>
+    <string name="error_unknown">Unknown error</string>
+
+    <!-- Detail screen -->
+    <string name="character">Character</string>
+    <string name="back">Back</string>
+    <string name="loading_character">Loading character…</string>
+    <string name="failed_to_load_character">Failed to load character</string>
+    <string name="label_status">Status</string>
+    <string name="label_species">Species</string>
+    <string name="label_gender">Gender</string>
 </resources>
