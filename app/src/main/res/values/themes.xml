@@ -2,4 +2,11 @@
 <resources>
 
     <style name="Theme.AppTheme" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Sistemски splash (Android 12+), uz backport za starije. -->
+    <style name="Theme.AppTheme.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/black</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.AppTheme</item>
+    </style>
 </resources>
