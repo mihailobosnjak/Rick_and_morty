@@ -1,9 +1,10 @@
 package com.example.rickandmorty.navigation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,6 +26,8 @@ fun AppNavGraph(
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
+    val activity = LocalContext.current as ComponentActivity
+    val characterListViewModel: CharacterListViewModel = hiltViewModel(activity)
 
     NavHost(
         navController = navController,
@@ -33,6 +36,7 @@ fun AppNavGraph(
     ) {
         composable(Routes.SPLASH) {
             SplashRoute(
+                viewModel = characterListViewModel,
                 modifier = Modifier.fillMaxSize(),
                 onNavigateToHome = {
                     navController.navigate(Routes.CHARACTER_LIST) {
@@ -43,9 +47,8 @@ fun AppNavGraph(
         }
 
         composable(Routes.CHARACTER_LIST) {
-            val viewModel: CharacterListViewModel = hiltViewModel()
             CharacterListRoute(
-                viewModel = viewModel,
+                viewModel = characterListViewModel,
                 modifier = Modifier.fillMaxSize(),
                 onCharacterClick = { character ->
                     navController.navigate(Routes.characterDetailRoute(character.id))
