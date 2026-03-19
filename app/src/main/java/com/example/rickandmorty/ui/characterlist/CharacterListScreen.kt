@@ -13,11 +13,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,14 +48,19 @@ fun CharacterListRoute(
 
     Surface(modifier = modifier.fillMaxSize()) {
         when {
-            uiState.isLoading -> LoadingState()
+            uiState.isLoading && uiState.characters.isEmpty() -> LoadingState()
             uiState.errorMessage != null -> ErrorState(
                 message = uiState.errorMessage ?: stringResource(R.string.error_unknown),
                 onRetry = { viewModel.loadCharacters() }
             )
             else -> CharacterList(
                 characters = uiState.characters,
-                onCharacterClick = onCharacterClick
+                hasNextPage = uiState.hasNextPage,
+                isLoadingMore = uiState.isLoadingMore,
+                isRefreshing = uiState.isLoading,
+                onCharacterClick = onCharacterClick,
+                onLoadMore = { viewModel.loadMoreCharacters() },
+                onRefresh = { viewModel.loadCharacters() }
             )
         }
     }
@@ -97,19 +109,70 @@ private fun ErrorState(
 @Composable
 private fun CharacterList(
     characters: List<Character>,
-    onCharacterClick: (Character) -> Unit
+    hasNextPage: Boolean,
+    isLoadingMore: Boolean,
+    isRefreshing: Boolean,
+    onCharacterClick: (Character) -> Unit,
+    onLoadMore: () -> Unit,
+    onRefresh: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(characters) { character ->
-            CharacterListItem(
-                character = character,
-                onClick = { onCharacterClick(character) }
+    val listState = rememberLazyListState()
+    val pullState = rememberPullToRefreshState()
+    // Prefetch: učitaj sledeću stranicu dok smo još “malo” iznad kraja liste.
+    val prefetchDistance = 5
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+
+            if (totalItems <= 0) return@derivedStateOf false
+
+            val triggerIndex = (totalItems - 1 - prefetchDistance).coerceAtLeast(0)
+            lastVisibleIndex >= triggerIndex && hasNextPage && !isLoadingMore && !isRefreshing
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) onLoadMore()
+    }
+
+    PullToRefreshBox(
+        state = pullState,
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullState,
+                isRefreshing = isRefreshing
             )
+        }
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(characters, key = { it.id }) { character ->
+                CharacterListItem(
+                    character = character,
+                    onClick = { onCharacterClick(character) }
+                )
+            }
+            if (isLoadingMore) {
+                item(key = "loading_more") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                }
+            }
         }
     }
 }
